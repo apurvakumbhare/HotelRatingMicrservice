@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import com.example.UserMicroservice.Entities.Hotel;
 import com.example.UserMicroservice.Entities.Rating;
 import com.example.UserMicroservice.Entities.User;
 import com.example.UserMicroservice.Service.UserService;
@@ -43,10 +44,37 @@ public class UserController {
 	public ResponseEntity<User> getUserById(@PathVariable String Id){
 		User user =service.getUserById(Id);
 		String UserID=user.getUserId();
-		ArrayList<Rating> ratings =restTemplate.getForObject("http://127.0.0.1:8082/RatingMicroservice/getRatingByUserID/"+UserID, ArrayList.class);
-		logger.info("{}",ratings);
-		
-		user.setRatings(ratings);
+
+	    List<Rating> ratingList = new ArrayList<>();
+
+	    try {
+	        // FIX: Deserialize JSON into Rating[] instead of ArrayList<LinkedHashMap>
+	        Rating[] ratingArray = restTemplate.getForObject(
+	                "http://RATINGMICROSERVICE/RatingMicroservice/getRatingByUserID/" + UserID,
+	                Rating[].class
+	        );
+
+	        if (ratingArray != null) {
+	            ratingList = List.of(ratingArray);
+	        }
+
+	    } catch (Exception e) {
+	        logger.error("Rating service down or invalid response", e);
+	    }
+
+	    logger.info("Ratings: {}", ratingList);
+	    for (Rating rating : ratingList) {
+	        try {
+	            Hotel hotel = restTemplate.getForObject(
+	                    "http://HOTELMICROSERVICE/HotelMicroservice/getHotel/" + rating.getHotelId(),
+	                    Hotel.class
+	            );
+	            rating.setHotel(hotel);
+	        } catch (Exception e) {
+	            logger.error("Hotel service failed for hotel ID: " + rating.getHotelId(), e);
+	        }
+	    }
+		user.setRatings(ratingList);
 		return ResponseEntity.status(HttpStatus.OK).body(user);
 	}
 	@GetMapping("/getUser")

@@ -30,6 +30,10 @@ import jakarta.persistence.PostPersist;
 @RequestMapping("/UserMicroservice")
 public class UserController {
 	@Autowired
+	public HotelService hotelService;
+	@Autowired
+	public FeignController feignController;
+	@Autowired
 	public RestTemplate restTemplate;
 	public Logger logger=LoggerFactory.getLogger(UserController.class);
 	@Autowired
@@ -45,34 +49,37 @@ public class UserController {
 		User user =service.getUserById(Id);
 		String UserID=user.getUserId();
 
-	    List<Rating> ratingList = new ArrayList<>();
+//		List<Rating> ratingList = new ArrayList<>();
+//
+//	    try {
+//	        // FIX: Deserialize JSON into Rating[] instead of ArrayList<LinkedHashMap>
+//	        Rating[] ratingArray = restTemplate.getForObject(
+//	                "http://RATINGMICROSERVICE/RatingMicroservice/getRatingByUserID/" + UserID,
+//	                Rating[].class
+//	        );
+//
+//	        if (ratingArray != null) {
+//	            ratingList = List.of(ratingArray);
+//	        }
+//
+//	    } catch (Exception e) {
+//	        logger.error("Rating service down or invalid response", e);
+//	    }
+	    List<Rating> ratingList =feignController.getRatings(UserID);
 
-	    try {
-	        // FIX: Deserialize JSON into Rating[] instead of ArrayList<LinkedHashMap>
-	        Rating[] ratingArray = restTemplate.getForObject(
-	                "http://RATINGMICROSERVICE/RatingMicroservice/getRatingByUserID/" + UserID,
-	                Rating[].class
-	        );
-
-	        if (ratingArray != null) {
-	            ratingList = List.of(ratingArray);
-	        }
-
-	    } catch (Exception e) {
-	        logger.error("Rating service down or invalid response", e);
-	    }
-
+	   
 	    logger.info("Ratings: {}", ratingList);
 	    for (Rating rating : ratingList) {
-	        try {
-	            Hotel hotel = restTemplate.getForObject(
-	                    "http://HOTELMICROSERVICE/HotelMicroservice/getHotel/" + rating.getHotelId(),
-	                    Hotel.class
-	            );
-	            rating.setHotel(hotel);
-	        } catch (Exception e) {
-	            logger.error("Hotel service failed for hotel ID: " + rating.getHotelId(), e);
-	        }
+//	        try {
+//	            Hotel hotel = restTemplate.getForObject(
+//	                    "http://HOTELMICROSERVICE/HotelMicroservice/getHotel/" + rating.getHotelId(),
+//	                    Hotel.class
+//	            );
+//	            rating.setHotel(hotel);
+//	        } catch (Exception e) {
+//	            logger.error("Hotel service failed for hotel ID: " + rating.getHotelId(), e);
+//	        }
+	    	Hotel hotel =hotelService.getHotelByHotelId(rating.getHotelId());
 	    }
 		user.setRatings(ratingList);
 		return ResponseEntity.status(HttpStatus.OK).body(user);

@@ -1,3 +1,39 @@
+server:
+  port: 8080
+
 spring:
   application:
     name: Gateway
+  cloud:
+    gateway:
+      routes:
+        - id: HOTELMICROSERVICE
+          uri: lb://HOTELMICROSERVICE
+          predicates:
+            - Path=/HotelMicroservice/**
+          filters:
+            - StripPrefix=1
+
+        - id: RATINGMICROSERVICE
+          uri: lb://RATINGMICROSERVICE
+          predicates:
+            - Path=/RatingMicroservice/**
+          filters:
+            - StripPrefix=1
+
+        - id: USERMICROSERVICE
+          uri: lb://USERMICROSERVICE
+          predicates:
+            - Path=/UserMicroservice/**
+          filters:
+            - StripPrefix=1
+
+eureka:
+  instance:
+    prefer-ip-address: true
+  client:
+    enabled: true
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: http://localhost:8761/eureka/

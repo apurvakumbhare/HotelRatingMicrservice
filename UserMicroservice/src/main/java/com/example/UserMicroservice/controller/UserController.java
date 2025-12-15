@@ -24,6 +24,9 @@ import com.example.UserMicroservice.Entities.User;
 import com.example.UserMicroservice.Service.UserService;
 import com.example.UserMicroservice.Service.UserServiceImpl;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 import jakarta.persistence.PostPersist;
 
 @RestController
@@ -45,6 +48,9 @@ public class UserController {
 	}
 	
 	@GetMapping("/getUser/{Id}")
+//	@CircuitBreaker(name="ratingHotelBreaker",fallbackMethod = "ratingHotelBreakerFallbackMethod")
+//	@Retry(name="ratingHotelBreaker",fallbackMethod = "ratingHotelBreakerFallbackMethod")
+	@RateLimiter(name="ratingHotelBreaker",fallbackMethod = "ratingHotelBreakerFallbackMethod")
 	public ResponseEntity<User> getUserById(@PathVariable String Id){
 		User user =service.getUserById(Id);
 		String UserID=user.getUserId();
@@ -85,9 +91,20 @@ public class UserController {
 		return ResponseEntity.status(HttpStatus.OK).body(user);
 	}
 	@GetMapping("/getUser")
+	
 	public ResponseEntity<Optional<List<User>>> GetListOfUser(){
 		Optional<List<User>> users =Optional.of(service.getAllUsers());
 		return ResponseEntity.status(HttpStatus.OK).body(users);
+	}
+	
+	public ResponseEntity<User> ratingHotelBreakerFallbackMethod(String id,Exception ex){
+		User user=User.builder()
+				.about("This is Dummy User Beacause Some Services are Currently Down ")
+				.email("dummy123@gmail.com")
+				.name("Dummy ")
+				.userId("Dummy123")
+				.build();
+		return new ResponseEntity<>(user,HttpStatus.OK);
 	}
 	
 }
